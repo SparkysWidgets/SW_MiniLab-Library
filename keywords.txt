@@ -1,0 +1,38 @@
+#######################################
+# Syntax Coloring Map for SW_MiniLib
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+MINIPH	KEYWORD1
+MINIEC	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+calibratepH7	KEYWORD2
+calibratepH4	KEYWORD2
+calibratepH10	KEYWORD2
+calcpHSlope		KEYWORD2
+calcpH  		KEYWORD2
+tempAdjustpH	KEYWORD2
+updateopAmpGain KEYWORD2
+writeParamsToEEPROM	KEYWORD2
+reset_pHParams	KEYWORD2
+calibrateeCLow	KEYWORD2
+calibrateeCHigh	KEYWORD2
+calceCSlope		KEYWORD2
+calceC 			KEYWORD2
+tempAdjusteC	KEYWORD2
+updateRGain		KEYWORD2
+updateoscVout	KEYWORD2
+updatekCell		KEYWORD2
+reset_eCParams	KEYWORD2
+
+#######################################
+# Constants (LITERAL1)
+#######################################
+
