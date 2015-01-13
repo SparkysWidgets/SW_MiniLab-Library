@@ -62,6 +62,7 @@ class MINIPH : public MCP3221
 	void calibratepH10(int calnum);
 	void calcpHSlope ();
 	float calcpH(int raw);
+	float mappH(int raw);
 	float tempAdjustpH(float pHtoAdjust, float temp);
 	
 	void updateopAmpGain(float opAmpGain);
@@ -85,7 +86,8 @@ public:
 	void calibrateeCLow(int calnum);
 	void calibrateeCHigh(int calnum);
 	void calceCSlope();
-	float calceC(int raw);
+	float calceC(int raw, int eCRefLow, int eCRefHigh);
+	float mapeC(int raw, int eCRefLow, int eCRefHigh);
 	float tempAdjusteC(float pHtoAdjust, float temp);
 
 	void updateRGain(int RGain);

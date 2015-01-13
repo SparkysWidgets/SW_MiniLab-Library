@@ -80,6 +80,21 @@ float MINIPH::calcpH(int raw)
 	return pH;
 }
 
+float MINIPH::mappH(int raw)
+{
+	float temp;
+	if (_ispH10Cal)
+	{
+		temp = map(raw, _pHParams.pH7Cal, _pHParams.pH10Cal, 700, 1000);
+	}
+	else
+	{
+		temp = map(raw, _pHParams.pH4Cal, _pHParams.pH7Cal, 400, 700);
+	}
+	temp = constrain(temp, 100, 1400);
+	return temp/100;
+}
+
 float MINIPH::tempAdjustpH(float pHtoAdjust, float temp)
 {
 
@@ -148,7 +163,7 @@ void MINIEC::calibrateeCLow(int calnum)
 	_eCParams.eCLow = calnum;
 	calceCSlope();
 	//write these settings back to eeprom, Lets do these save separately to save EEPROM writes
-	//eeprom_write_block(&_pHParams, (void *)0, sizeof(_pHParams)); 
+	eeprom_write_block(&_eCParams, (void *)0, sizeof(_eCParams)); 
 }
 
 void MINIEC::calibrateeCHigh(int calnum)
@@ -156,19 +171,20 @@ void MINIEC::calibrateeCHigh(int calnum)
 	_eCParams.eCHigh = calnum;
 	calceCSlope();
 	//write these settings back to eeprom, Lets do these save separately to save EEPROM writes
-	//eeprom_write_block(&_pHParams, (void *)0, sizeof(_pHParams)); 
+	eeprom_write_block(&_eCParams, (void *)0, sizeof(_eCParams)); 
 }
 
 void MINIEC::calceCSlope()
 {
 
-	//RefVoltage * our deltaRawpH / 12bit steps *mV in V / OP-Amp gain /pH step difference 7-4
-	//_eCParams.eCStep = ((calcMillivolts(_eCParams.pH7Cal) - calcMillivolts(_eCParams.pH4Cal)) / _opAmpGain) / 3;
-
+	//Technically we dont really need to calculate eC this way but we probably should implement this anyway
+	_eCParams.eCStep = _eCParams.eCHigh / _eCParams.eCLow;
 }
 
-float MINIEC::calceC(int raw)
+float MINIEC::calceC(int raw, int eCRefLow, int eCRefHigh)
 {
+	//eCRefLow and eCRefHigh allow users to input the reference range
+	//need to refactor to make these calculations with with any range. while it works careful using!
 	float milliVolts, eC;
 
 	milliVolts = calcMillivolts(raw);
@@ -185,6 +201,18 @@ float MINIEC::calceC(int raw)
 	eC = ((1000000) * _kCell) / RProbe;
 
 	return eC;
+}
+
+float MINIEC::mapeC(int raw, int eCRefLow, int eCRefHigh)
+{
+
+	float temp;
+
+	//eCRefLow and eCRefHigh allow users to input the reference range they have, this should make this calculation valid despite KCell and ranges
+	//Caveat that they range falls within the standard range of the KCell of the probe used
+	temp = map(raw, _eCParams.eCLow, _eCParams.eCHigh, eCRefLow, eCRefHigh); 
+
+	return temp;
 }
 
 float MINIEC::tempAdjusteC(float eCtoAdjust, float temp)
