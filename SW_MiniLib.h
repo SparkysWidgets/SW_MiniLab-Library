@@ -29,7 +29,7 @@
 
 //Our EEPROM magic number for error/reset check
 #define PHWRITE_CHECK 0x1234
-#define ECWRITE_CHECK 0x1234
+#define ECWRITE_CHECK 0x1235
 #define DEFAULTOPAMPGAIN 5.25f
 #define DEFAULTRGAIN 1000.0f
 #define FIVEKHALFPOT 2470.0f
@@ -48,7 +48,8 @@ struct pHParameters_T
 struct eCParameters_T
 {
 	uint8_t WriteCheck;
-	int eCLow, eCHigh;
+	int eCLow, eCRefLow;
+	long eCHigh, eCRefHigh;
 	float eCStep;
 };
 
@@ -61,6 +62,7 @@ class MINIPH : public MCP3221
 	void calibratepH4(int calnum);
 	void calibratepH10(int calnum);
 	void calcpHSlope ();
+	float getpHSlope();
 	float calcpH(int raw);
 	float mappH(int raw);
 	float tempAdjustpH(float pHtoAdjust, float temp);
@@ -69,13 +71,14 @@ class MINIPH : public MCP3221
 
 	void writeParamsToEEPROM();
 
+	//Yeah, yeah this really should be private but I dont want to make a getter, setter for each params
+	// and I need them exposed to let users know what the stored pH values are should they need it. FIXME for future!
+	pHParameters_T _pHParams;
+	void reset_pHParams(void);
+
  private:
 	float _opAmpGain;
-	bool _isRollingAVG, _ispH10Cal;
- 
-	pHParameters_T _pHParams;
-
-	void reset_pHParams(void);
+	bool _isRollingAVG, _ispH10Cal;	
 };
 
 class MINIEC : public MCP3221
@@ -85,9 +88,14 @@ public:
 
 	void calibrateeCLow(int calnum);
 	void calibrateeCHigh(int calnum);
+	void calibrateeCLow(int calnum, long eCRefLow);
+	void calibrateeCHigh(int calnum, long eCRefHigh);
 	void calceCSlope();
-	float calceC(int raw, int eCRefLow, int eCRefHigh);
-	float mapeC(int raw, int eCRefLow, int eCRefHigh);
+	float geteCSlope();
+	float calceC(int raw);
+	float calceC(int raw, long eCRefLow, long eCRefHigh);
+	float mapeC(int raw);
+	float mapeC(int raw, long eCRefLow, long eCRefHigh);
 	float tempAdjusteC(float pHtoAdjust, float temp);
 
 	void updateRGain(int RGain);
@@ -96,14 +104,15 @@ public:
 
 	void writeParamsToEEPROM();
 
+	//Yeah, yeah this really should be private but I dont want to make a getter, setter for each params
+	// and I need them exposed to let users know what the stored eC values are should they need it. FIXME for future!
+	eCParameters_T _eCParams;	
+	void reset_eCParams(void);
+
 private:
 	float _oscVout, _kCell;
 	int _RGain;
-	bool _isRollingAVG;
-
-	eCParameters_T _eCParams;
-
-	void reset_eCParams(void);
+	bool _isRollingAVG;	
 };
 
 #endif

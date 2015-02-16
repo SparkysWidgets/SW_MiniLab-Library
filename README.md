@@ -10,6 +10,7 @@ Class Info
 -------------------------
 
 - Each sensor type support has its own class
+- Each sensor has its own instance, so many can be used (be careful of memory usage)
 - Feed it address and and measured VREF(I.E measured VDD into IC) for ADC interfacing
 - Each sensor inherits from the MCP3221 Library 
 
@@ -21,6 +22,7 @@ Method Info
 - Calibration methods for 4, 7 and 10 reference solutions
 - Calibration methods for eC solutions (a low and high to calc slope)
 - temperature compensation methods
+- Map methods for both pH and eC have been added as well for those that prefer the ReefAngle way of calculating values(Thanks RA project, http://www.reefangel.com/)
 
 Additions, Errata
 -------------------------

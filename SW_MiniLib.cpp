@@ -66,6 +66,11 @@ void MINIPH::calcpHSlope ()
   
 }
 
+float MINIPH::getpHSlope()
+{
+	return _pHParams.pHStep;
+}
+
 float MINIPH::calcpH(int raw)
 {
 	float milliVolts, pH;
@@ -174,6 +179,24 @@ void MINIEC::calibrateeCHigh(int calnum)
 	eeprom_write_block(&_eCParams, (void *)0, sizeof(_eCParams)); 
 }
 
+void MINIEC::calibrateeCLow(int calnum, long eCRefLow)
+{
+	_eCParams.eCLow = calnum;
+	_eCParams.eCRefLow = eCRefLow;
+	calceCSlope();
+	//write these settings back to eeprom, Lets do these save separately to save EEPROM writes
+	eeprom_write_block(&_eCParams, (void *)0, sizeof(_eCParams));
+}
+
+void MINIEC::calibrateeCHigh(int calnum, long eCRefHigh)
+{
+	_eCParams.eCHigh = calnum;
+	_eCParams.eCRefHigh = eCRefHigh;
+	calceCSlope();
+	//write these settings back to eeprom, Lets do these save separately to save EEPROM writes
+	eeprom_write_block(&_eCParams, (void *)0, sizeof(_eCParams));
+}
+
 void MINIEC::calceCSlope()
 {
 
@@ -181,7 +204,12 @@ void MINIEC::calceCSlope()
 	_eCParams.eCStep = _eCParams.eCHigh / _eCParams.eCLow;
 }
 
-float MINIEC::calceC(int raw, int eCRefLow, int eCRefHigh)
+float MINIEC::geteCSlope()
+{
+	return _eCParams.eCStep;
+}
+
+float MINIEC::calceC(int raw, long eCRefLow, long eCRefHigh)
 {
 	//eCRefLow and eCRefHigh allow users to input the reference range
 	//need to refactor to make these calculations with with any range. while it works careful using!
@@ -203,7 +231,41 @@ float MINIEC::calceC(int raw, int eCRefLow, int eCRefHigh)
 	return eC;
 }
 
-float MINIEC::mapeC(int raw, int eCRefLow, int eCRefHigh)
+float MINIEC::calceC(int raw)
+{
+	//eCRefLow and eCRefHigh allow users to input the reference range
+	//need to refactor to make these calculations with with any range. while it works careful using!
+	float milliVolts, eC;
+
+	milliVolts = calcMillivolts(raw);
+
+	//Math broken into steps to make more clear.
+	//Frist calc what the gain of the amp stage is op-amp gain (non-inv) = (Vout/Vin)-1 Vin is our oscVout voltage which should be measured with AC RMS preferred
+	float ampGain = (milliVolts / _oscVout) - 1.0;
+	//Now we can calculate what the Probes resistance is based on the gain of the amp (one part of the gain divider is fixed RGain)
+	float RProbe = (_RGain / ampGain);
+	//Since we use differently spaced probes to measure the different ranges of eC called KCell we need to account for this
+	//.1KCell = .1cm per area distance, 1KCell = 1cm per area distance, and 10KCell = 10cm per area distance. As can be seen the smaller distance(.1Kprobe) would be useful for lower uS solutions
+	//Where it would be overloaded in a very high uS solution meant more for a 1 or 10KCell probe. since uS is micro (or 10^-6) we can adjust our probes by shifting the decimal to match the probe
+	//With 1KCell matching 10^-6, despite the probes changes on the readings we just effectively scaled them all to match!!:)
+	eC = ((1000000) * _kCell) / RProbe;
+
+	return eC;
+}
+
+float MINIEC::mapeC(int raw)
+{
+
+	float temp;
+
+	//eCRefLow and eCRefHigh allow users to input the reference range they have, this should make this calculation valid despite KCell and ranges
+	//Caveat that they range falls within the standard range of the KCell of the probe used
+	temp = map(raw, _eCParams.eCLow, _eCParams.eCHigh, _eCParams.eCRefLow, _eCParams.eCRefHigh);
+
+	return temp;
+}
+
+float MINIEC::mapeC(int raw, long eCRefLow, long eCRefHigh)
 {
 
 	float temp;
@@ -250,8 +312,10 @@ void MINIEC::reset_eCParams(void)
 {
 	//Restore to default set of parameters!
 	_eCParams.WriteCheck = ECWRITE_CHECK;
-	_eCParams.eCLow = 500; //assume ideal probe and amp conditions 1/2 of 4096
-	_eCParams.eCHigh = 1286; //using ideal probe slope we end up this many 12bit units away on the 4 scale
+	_eCParams.eCLow = 220; //assume ideal probe and amp conditions 1/2 of 4096
+	_eCParams.eCHigh = 3200; //using ideal probe slope we end up this many 12bit units away on the 4 scale
+	_eCParams.eCRefLow = 10000L;
+	_eCParams.eCRefHigh = 40000L;
 	_eCParams.eCStep = 59.16;//ideal probe slope
 	writeParamsToEEPROM();
 }
