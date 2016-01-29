@@ -27,6 +27,7 @@ Method Info
 Additions, Errata
 -------------------------
 
+- Added Version 4 hardware(MinipH) compatibility to library
 - Inherent from MCP4017 library to add in digital potentiometer support (will branch lib with ext extension)
 - Add more probe support ORP, DO etc...
 
