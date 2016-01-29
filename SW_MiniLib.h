@@ -10,7 +10,13 @@
   Please help support my efforts by purchasing products from www.sparkyswidgets.com, donating some time 
   on documentation or you can even donate some BitCoin to 1NwPNsf6t5vpph6AYY5bg361PSppPSSgDn
 
-*/
+  4/2/2015 Initial changes to the constructor to allow for selection of Pre or Post MiniPh V4.0
+  4.0 hardware implements probe Biasing and eliminates the need for the charge pump and its additional
+  components(let alone eliminates the extra noise created by the switching noise.
+  special thanks to Margaret Johnson of bitknitting.wordpress.com for her contributions to improving
+  MinipH!
+
+  */
 /////////////////////////////////////////////////////////////////////////////
 
 #ifndef _SW_MINILIB_H
@@ -56,7 +62,7 @@ struct eCParameters_T
 class MINIPH : public MCP3221
 {
  public:
-	MINIPH(uint8_t adcAddress, int adcVRef, float opAmpGain, bool isRollingAVG, bool ispH10Cal);
+	MINIPH(uint8_t adcAddress, int adcVRef, float opAmpGain, bool isRollingAVG, bool ispH10Cal, bool isProbeBiased);
 
 	void calibratepH7(int calnum);
 	void calibratepH4(int calnum);
@@ -78,7 +84,11 @@ class MINIPH : public MCP3221
 
  private:
 	float _opAmpGain;
-	bool _isRollingAVG, _ispH10Cal;	
+	bool _isRollingAVG, _ispH10Cal,
+		//Here we added a check to see if we are using the New MinipH design or another design which implements Probe Bias
+		//Generally one creates a virtual ground at half Supply(or in this case 1/2 adcVRef), on MinipH V4.0 we have no gain on probe
+		//Meaning you should beable to use this with orp probes as well but they may clip!
+		_isProbeBiased;
 };
 
 class MINIEC : public MCP3221

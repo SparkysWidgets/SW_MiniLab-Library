@@ -10,16 +10,31 @@
   Please help support my efforts by purchasing products from www.sparkyswidgets.com, donating some time 
   on documentation or you can even donate some BitCoin to 1NwPNsf6t5vpph6AYY5bg361PSppPSSgDn
 
+  4/2/2015 Initial changes to the constructor to allow for selection of Pre or Post MiniPh V4.0
+  4.0 hardware implements probe Biasing and eliminates the need for the charge pump and its additional
+  components(let alone eliminates the extra noise created by the switching noise.
+  special thanks to Margaret Johnson of bitknitting.wordpress.com for her contributions to improving
+  MinipH!
+
 */
 /////////////////////////////////////////////////////////////////////////////
 
 #include "SW_MiniLib.h"
 
-MINIPH::MINIPH(uint8_t adcAddress, int adcVRef, float opAmpGain, bool isRollingAVG, bool ispH10Cal) : MCP3221(adcAddress, adcVRef)
+MINIPH::MINIPH(uint8_t adcAddress, int adcVRef, float opAmpGain, bool isRollingAVG, bool ispH10Cal, bool isProbeBiased) : MCP3221(adcAddress, adcVRef)
 {
 	_isRollingAVG = isRollingAVG;
-	_opAmpGain = opAmpGain;
 	_ispH10Cal = ispH10Cal;
+	//The easiest way to adapt code between Pre and Post MinipH V4 Hardware is just to set the opamp gain to 1
+	//Meaning there is no gain, we still need to handle the offset of the virtual ground which is adcVRef/2
+	if (!isProbeBiased)
+	{
+		_opAmpGain = opAmpGain;
+	}
+	else
+	{
+		_opAmpGain = 1;
+	}
 	//Lets double check to make sure we have some values stored in EEPROM if not load defaults
 	eeprom_read_block(&_pHParams, (void *)0, sizeof(_pHParams));
 	if (_pHParams.WriteCheck != PHWRITE_CHECK){
@@ -31,36 +46,36 @@ void MINIPH::calibratepH7(int calnum)
 {
 	_pHParams.pH7Cal = calnum;
 	calcpHSlope();
-	//write these settings back to eeprom, Lets do these save separately to save EEPROM writes
-	//eeprom_write_block(&_pHParams, (void *)0, sizeof(_pHParams)); 
+
+	eeprom_write_block(&_pHParams, (void *)0, sizeof(_pHParams)); 
 }
 
 void MINIPH::calibratepH4(int calnum)
 {
 	_pHParams.pH4Cal = calnum;
 	calcpHSlope();
-	//write these settings back to eeprom, Lets do these save separately to save EEPROM writes
-	//eeprom_write_block(&_pHParams, (void *)0, sizeof(_pHParams)); 
+
+	eeprom_write_block(&_pHParams, (void *)0, sizeof(_pHParams)); 
 }
 
 void MINIPH::calibratepH10(int calnum)
 {
 	_pHParams.pH10Cal = calnum;
 	calcpHSlope();
-	//write these settings back to eeprom, Lets do these save separately to save EEPROM writes
-	//eeprom_write_block(&_pHParams, (void *)0, sizeof(_pHParams)); 
+
+	eeprom_write_block(&_pHParams, (void *)0, sizeof(_pHParams)); 
 }
 
 void MINIPH::calcpHSlope ()
 {
 	if(_ispH10Cal)
 	{
-	//RefVoltage * our deltaRawpH / 12bit steps *mV in V / OP-Amp gain /pH step difference 10-7
+		//RefVoltage * our deltaRawpH / 12bit steps *mV in V / OP-Amp gain /pH step difference 10-7
 		_pHParams.pHStep = ((calcMillivolts(_pHParams.pH10Cal) - calcMillivolts(_pHParams.pH7Cal)) / _opAmpGain) / 3;
 	}
 	else
 	{
-	//RefVoltage * our deltaRawpH / 12bit steps *mV in V / OP-Amp gain /pH step difference 7-4
+		//RefVoltage * our deltaRawpH / 12bit steps *mV in V / OP-Amp gain /pH step difference 7-4
 		_pHParams.pHStep = ((calcMillivolts(_pHParams.pH7Cal) - calcMillivolts(_pHParams.pH4Cal)) / _opAmpGain) / 3;
 	}
   
@@ -138,10 +153,18 @@ void MINIPH::reset_pHParams(void)
 {
 	//Restore to default set of parameters!
 	_pHParams.WriteCheck = PHWRITE_CHECK;
-	_pHParams.pH10Cal = 3096;
-	_pHParams.pH7Cal = 2048; //assume ideal probe and amp conditions 1/2 of 4096
-	_pHParams.pH4Cal = 1286; //using ideal probe slope we end up this many 12bit units away on the 4 scale
-	_pHParams.pHStep = 59.16;//ideal probe slope
+
+	_pHParams.pH10Cal = 1848;
+	_pHParams.pH7Cal = 2078; //assume ideal probe and amp conditions 1/2 of 4096
+	_pHParams.pH4Cal = 2242; //using ideal probe slope we end up this many 12bit units away on the 4 scale
+	_pHParams.pHStep = -59.16;//ideal probe slope
+
+
+	//_pHParams.pH10Cal = 3096;
+	//_pHParams.pH7Cal = 2048; //assume ideal probe and amp conditions 1/2 of 4096
+	//_pHParams.pH4Cal = 1286; //using ideal probe slope we end up this many 12bit units away on the 4 scale
+	//_pHParams.pHStep = 59.16;//ideal probe slope
+
 	writeParamsToEEPROM();
 }
 
